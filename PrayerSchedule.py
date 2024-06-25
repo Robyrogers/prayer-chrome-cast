@@ -1,6 +1,5 @@
 from typing import Literal
 import requests
-import os
 
 PRAYER = ('fajr', 'dhuhr', 'asr', 'maghrib', 'isha')
 
@@ -27,5 +26,3 @@ class PrayerSchedule:
         prayer_timings = response.json()['items'][0]
 
         return { prayer: self.__get_24hr_time(prayer_timings[prayer]) for prayer in PRAYER }
-    
-# print(PrayerSchedule(os.getenv('API_KEY')).get_timings())
