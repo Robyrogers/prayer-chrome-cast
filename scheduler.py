@@ -7,18 +7,19 @@ USER = getenv('USER')
 PYTHON = getenv('PYTHON', '/usr/bin/python')
 CITY = getenv('CITY')
 COUNTRY = getenv('COUNTRY')
-CRON_DIR = getenv('CRON_DIR', getcwd())
 LOG = getenv('LOG')
 
 def create_prayer_job(prayer: str, time: dict[Literal['hh', 'mm'], int]):
     job = CronItem(
             user=USER,
             comment=f'{prayer} Prayer',
-            command=f"cd {getcwd()} && '{PYTHON}' -m pipenv run start --fajr" if prayer == 'Fajr'
-                    else f"cd {getcwd()} && '{PYTHON}' -m pipenv run start"
+            command=f'cd $DIR && $PYTHON -m pipenv run start --fajr' if prayer == 'Fajr'
+                    else f'cd $DIR && $PYTHON -m pipenv run start'
         )
     job.hour.on(time['hh'])
-    job.minute.on(time['mm'])    
+    job.minute.on(time['mm'])
+    job.env['DIR'] = getcwd()
+    job.env['PYTHON'] = PYTHON
     return job
 
 def update_prayer_schedule(cron: CronTab = None):
@@ -38,10 +39,12 @@ def init_cron_job():
         job = CronItem(
             user=USER,
             comment='Update Prayer',
-            command=f"cd {getcwd()} && '{PYTHON}' -m pipenv run start --update"
+            command=f'cd $DIR && $PYTHON -m pipenv run start --update'
         )
         job.minute.on(0)
         job.hour.on(1)
+        job.env['DIR'] = getcwd()
+        job.env['PYTHON'] = PYTHON
         cron.append(job)
 
         update_prayer_schedule(cron)
