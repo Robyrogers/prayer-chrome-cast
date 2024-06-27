@@ -1,7 +1,7 @@
 import argparse
 from os import getenv
 from MediaCaster import MediaCaster
-from scheduler import clean_up_cron_jobs, init_cron_job
+from scheduler import clean_up_cron_jobs, init_cron_job, update_prayer_schedule
 
 ADHAN = getenv('ADHAN')
 FAJR_ADHAN = getenv('FAJR_ADHAN')
@@ -13,6 +13,7 @@ parser = argparse.ArgumentParser(
 parser.add_argument('--fajr', action='store_true', default=False)
 parser.add_argument('--setup', dest='mode', action='store_const', const='setup')
 parser.add_argument('--cleanup', dest='mode', action='store_const', const='cleanup')
+parser.add_argument('--update', dest='mode', action='store_const', const='update')
 
 args = parser.parse_args()
 
@@ -25,9 +26,12 @@ def prayer_call():
             player.cast_audio(ADHAN)
     
 if __name__ == '__main__':
-    if args.mode == 'setup':
+    mode = args.mode
+    if mode == 'setup':
         init_cron_job()
-    elif args.mode == 'cleanup':
+    elif mode == 'cleanup':
         clean_up_cron_jobs()
+    elif mode == 'update':
+        update_prayer_schedule()
     else:
         prayer_call()
