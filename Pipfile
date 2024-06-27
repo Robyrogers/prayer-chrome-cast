@@ -5,6 +5,7 @@ name = "pypi"
 
 [packages]
 pychromecast = "*"
+python-crontab = "*"
 
 [dev-packages]
 
