@@ -4,7 +4,7 @@ from PrayerSchedule import PrayerSchedule
 from crontab import CronTab, CronItem
 
 USER = getenv('USER')
-PYTHON = getenv('PYTHON', 'python')
+PYTHON = getenv('PYTHON', '/usr/bin/python')
 CITY = getenv('CITY')
 COUNTRY = getenv('COUNTRY')
 CRON_DIR = getenv('CRON_DIR', getcwd())
@@ -14,8 +14,8 @@ def create_prayer_job(prayer: str, time: dict[Literal['hh', 'mm'], int]):
     job = CronItem(
             user=USER,
             comment=f'{prayer} Prayer',
-            command=f'cd {getcwd()} && {PYTHON} -m pipenv run start --fajr >> {LOG} 2>&1' if prayer == 'Fajr'
-                    else f'cd {getcwd()} && {PYTHON} -m pipenv run start >> {LOG} 2>&1'
+            command=f'cd {getcwd()} && {PYTHON} -m pipenv run start --fajr' if prayer == 'Fajr'
+                    else f'cd {getcwd()} && {PYTHON} -m pipenv run start'
         )
     job.hour.on(time['hh'])
     job.minute.on(time['mm'])    
@@ -38,7 +38,7 @@ def init_cron_job():
         job = CronItem(
             user=USER,
             comment='Update Prayer',
-            command=f'cd {getcwd()} && {PYTHON} -m pipenv run start --update >> {LOG} 2>&1'
+            command=f'cd {getcwd()} && {PYTHON} -m pipenv run start --update'
         )
         job.minute.on(0)
         job.hour.on(1)
