@@ -14,3 +14,6 @@ python_version = "3.11"
 
 [scripts]
 start = "python ."
+setup = "python . --setup"
+cleanup = "python . --cleanup"
+update = "python . --update"

@@ -39,7 +39,7 @@ def init_cron_job():
         job = CronItem(
             user=USER,
             comment='Update Prayer',
-            command=f'cd $DIR && $PYTHON -m pipenv run start --update >> {LOG} 2>&1'
+            command=f'cd $DIR && $PYTHON -m pipenv run update >> {LOG} 2>&1'
         )
         job.minute.on(0)
         job.hour.on(1)
