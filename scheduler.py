@@ -13,8 +13,8 @@ def create_prayer_job(prayer: str, time: dict[Literal['hh', 'mm'], int]):
     job = CronItem(
             user=USER,
             comment=f'{prayer} Prayer',
-            command=f'cd $DIR && $PYTHON -m pipenv run start --fajr' if prayer == 'Fajr'
-                    else f'cd $DIR && $PYTHON -m pipenv run start'
+            command=f'cd $DIR && $PYTHON -m pipenv run start --fajr >> {LOG} 2>&1' if prayer == 'Fajr'
+                    else f'cd $DIR && $PYTHON -m pipenv run start >> {LOG} 2>&1'
         )
     job.hour.on(time['hh'])
     job.minute.on(time['mm'])
@@ -39,7 +39,7 @@ def init_cron_job():
         job = CronItem(
             user=USER,
             comment='Update Prayer',
-            command=f'cd $DIR && $PYTHON -m pipenv run start --update'
+            command=f'cd $DIR && $PYTHON -m pipenv run start --update >> {LOG} 2>&1'
         )
         job.minute.on(0)
         job.hour.on(1)
