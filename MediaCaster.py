@@ -14,8 +14,7 @@ class MediaCaster:
 
         chromecasts, browser = pychromecast.get_listed_chromecasts(friendly_names=[self.__device_name], discovery_timeout=DISCOVER_TIMEOUT)
         sleep(5)
-        if(len(chromecasts) != 0 and retry):
-            chromecasts, browser = pychromecast.get_listed_chromecasts(friendly_names=[self.__device_name], discovery_timeout=DISCOVER_TIMEOUT)
+        while(len(chromecasts) == 0 and retry):
             sleep(5)
             retry = False
         
@@ -23,6 +22,8 @@ class MediaCaster:
             print(f"Found Device: {chromecasts[0].cast_info.friendly_name}")
             self.__device = chromecasts[0]
             self.__browser = browser
+        else:
+            print(f"Device Not Found in Time!")
 
     def __set_temporary_volume(self, volume: float):
         device = self.__device
@@ -62,5 +63,6 @@ class MediaCaster:
         return self
     
     def __exit__(self, type, value, traceback):
-        self.__device.disconnect(5)
-        self.__browser.stop_discovery()
+        if self.__device != None:
+            self.__device.disconnect(5)
+            self.__browser.stop_discovery()
