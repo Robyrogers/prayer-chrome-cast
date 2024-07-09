@@ -21,7 +21,7 @@ def prayer_call():
     fajr_prayer: str = args.fajr
     with MediaCaster(DEVICE_NAME) as player:
         if fajr_prayer:
-            player.cast_audio(FAJR_ADHAN, 0.3)
+            player.cast_audio(FAJR_ADHAN, 0.7)
         else:
             player.cast_audio(ADHAN)
     
