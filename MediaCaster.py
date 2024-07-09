@@ -10,13 +10,11 @@ class MediaCaster:
         self.__device: pychromecast.Chromecast = None
 
     def __set_device(self):
-        retry = True
-
+        t = 5
         chromecasts, browser = pychromecast.get_listed_chromecasts(friendly_names=[self.__device_name], discovery_timeout=DISCOVER_TIMEOUT)
-        sleep(5)
-        while(len(chromecasts) == 0 and retry):
-            sleep(5)
-            retry = False
+        while(len(chromecasts) == 0 and t > 0):
+            sleep(0.2)
+            t = t - 0.2
         
         if(len(chromecasts) != 0):
             print(f"Found Device: {chromecasts[0].cast_info.friendly_name}")
@@ -36,14 +34,14 @@ class MediaCaster:
         
         return reset_volume
 
-    def cast_audio(self, audio_url: str, volume: float = 0):
-        if(self.__device == None):
+    def cast_audio(self, audio_url: str, volume: float = None):
+        if(self.__device is None):
             return 
         
         device = self.__device
         device.wait(5)
 
-        if volume > 0:
+        if volume is not None:
             reset = self.__set_temporary_volume(volume)
 
         media_controller = device.media_controller
@@ -55,7 +53,7 @@ class MediaCaster:
         while(media_controller.status.player_state == 'PLAYING'):
             sleep(5)
         
-        if volume > 0:
+        if volume is not None:
             reset()
 
     def __enter__(self):
