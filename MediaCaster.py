@@ -1,7 +1,10 @@
 import pychromecast
 from time import sleep
+from logger import get_logger
 
 DISCOVER_TIMEOUT = 5
+
+logger = get_logger(__name__)
 
 class MediaCaster:
     def __init__(self, device_name: str):
@@ -10,18 +13,19 @@ class MediaCaster:
         self.__device: pychromecast.Chromecast = None
 
     def __set_device(self):
+        logger.info(f"Searching for Chromecast device: {self.__device_name}")
         t = 5
         chromecasts, browser = pychromecast.get_listed_chromecasts(friendly_names=[self.__device_name], discovery_timeout=DISCOVER_TIMEOUT)
         while(len(chromecasts) == 0 and t > 0):
             sleep(0.2)
             t = t - 0.2
-        
+
         if(len(chromecasts) != 0):
-            print(f"Found Device: {chromecasts[0].cast_info.friendly_name}")
+            logger.info(f"Found device: {chromecasts[0].cast_info.friendly_name}")
             self.__device = chromecasts[0]
             self.__browser = browser
         else:
-            print(f"Device Not Found in Time!")
+            logger.warning(f"Device '{self.__device_name}' not found within {DISCOVER_TIMEOUT} seconds")
 
     def __set_temporary_volume(self, volume: float):
         device = self.__device
@@ -36,8 +40,13 @@ class MediaCaster:
 
     def cast_audio(self, audio_url: str, volume: float = None):
         if(self.__device is None):
-            return 
-        
+            logger.warning("No device available, skipping playback")
+            return
+
+        logger.info(f"Casting audio from: {audio_url}")
+        if volume is not None:
+            logger.debug(f"Setting volume to: {volume}")
+
         device = self.__device
         device.wait(5)
 
@@ -48,11 +57,16 @@ class MediaCaster:
         media_controller.play_media(audio_url, 'audio/mp3')
         media_controller.block_until_active()
 
+        logger.debug("Waiting for playback to start")
         while(media_controller.status.player_state != 'PLAYING'):
             sleep(5)
+        logger.info("Playback started")
+
+        logger.debug("Waiting for playback to finish")
         while(media_controller.status.player_state == 'PLAYING'):
             sleep(5)
-        
+        logger.info("Playback finished")
+
         if volume is not None:
             reset()
 
