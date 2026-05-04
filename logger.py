@@ -5,9 +5,10 @@ from pathlib import Path
 
 DEFAULT_LOG_PATH = os.path.expanduser("~/logs/prayer.log")
 
-def get_logger(name: str, log_file: str = None) -> logging.Logger:
+
+def get_logger(name: str, log_file: str = DEFAULT_LOG_PATH) -> logging.Logger:
     if log_file is None:
-        log_file = os.getenv("LOG", DEFAULT_LOG_PATH)
+        log_file = DEFAULT_LOG_PATH
 
     log_path = Path(log_file)
     log_path.parent.mkdir(parents=True, exist_ok=True)

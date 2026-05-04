@@ -6,11 +6,15 @@ DISCOVER_TIMEOUT = 5
 
 logger = get_logger(__name__)
 
+
 class MediaCaster:
-    def __init__(self, device_name: str):
+    def __init__(self, device_name: str, port: int = 8000):
         self.__device_name = device_name
+        self.__port = port
         self.__browser: pychromecast.CastBrowser = None
         self.__device: pychromecast.Chromecast = None
+        self.__audio_server = None
+        self.__base_url = None
 
     def __set_device(self):
         logger.info(f"Searching for Chromecast device: {self.__device_name}")
@@ -38,10 +42,15 @@ class MediaCaster:
         
         return reset_volume
 
-    def cast_audio(self, audio_url: str, volume: float = None):
-        if(self.__device is None):
+    def cast_audio(self, audio_source: str, volume: float = None):
+        if self.__device is None:
             logger.warning("No device available, skipping playback")
             return
+
+        if audio_source.startswith("http"):
+            audio_url = audio_source
+        else:
+            audio_url = self.__base_url + audio_source
 
         logger.info(f"Casting audio from: {audio_url}")
         if volume is not None:
@@ -71,10 +80,22 @@ class MediaCaster:
             reset()
 
     def __enter__(self):
+        from server import AudioServer
+        self.__audio_server = AudioServer(port=self.__port)
+        try:
+            self.__base_url = self.__audio_server.start()
+            logger.info(f"Audio server started at {self.__base_url}")
+        except Exception as e:
+            logger.error(f"Failed to start audio server: {e}")
+            raise RuntimeError(f"Failed to start audio server on port {self.__port}: {e}") from e
+
         self.__set_device()
         return self
-    
+
     def __exit__(self, type, value, traceback):
+        if self.__audio_server:
+            self.__audio_server.stop()
+            logger.info("Audio server stopped")
         if self.__device != None:
             self.__device.disconnect(5)
             self.__browser.stop_discovery()
