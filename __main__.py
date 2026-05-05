@@ -62,7 +62,6 @@ def main() -> None:
         logger.info(f"Setting up cron jobs - city: {city}, country: {country}, user: {user}, device: {device_name}")
         init_cron_job(
             user=user,
-            python_path=config.location.python_path,
             city=city,
             country=country,
             port=config.adhan.port,
@@ -91,7 +90,6 @@ def main() -> None:
             user=user,
             city=city,
             country=country,
-            python_path=config.location.python_path,
             port=config.adhan.port,
             device_name=config.adhan.device_name,
             adhan=config.adhan.adhan_file,

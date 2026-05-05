@@ -1,3 +1,4 @@
+import re
 from dataclasses import dataclass
 from typing import Dict
 import requests
@@ -21,21 +22,40 @@ class PrayerSchedule:
         self._country = country
 
     def _parse_time(self, time_str: str) -> PrayerTime:
-        parts = time_str.strip().split()
-        if len(parts) < 2:
-            return PrayerTime(0, 0)
+        time_str = time_str.strip()
+        logger.debug(f"Parsing time string: '{time_str}'")
 
-        hh_mm = parts[0]
-        am_pm = parts[1].lower() if len(parts) > 1 else ""
+        # Try 12-hour format with AM/PM (e.g., "5:15 AM", "1:30 PM")
+        match = re.match(r'(\d{1,2}):(\d{2})\s*(AM|PM)', time_str, re.IGNORECASE)
+        if match:
+            hh = int(match.group(1))
+            mm = int(match.group(2))
+            period = match.group(3).upper()
+            if period == 'PM' and hh != 12:
+                hh += 12
+            elif period == 'AM' and hh == 12:
+                hh = 0
+            logger.debug(f"Parsed 12-hour: {hh}:{mm}")
+            return PrayerTime(hour=hh, minute=mm)
 
-        hh, mm = map(int, hh_mm.split(":"))
+        # Try 24-hour format (e.g., "05:15", "13:30")
+        try:
+            hh, mm = map(int, time_str.split(':'))
+            logger.debug(f"Parsed 24-hour: {hh}:{mm}")
+            return PrayerTime(hour=hh, minute=mm)
+        except ValueError:
+            pass
 
-        if am_pm == "am" and hh == 12:
-            hh = 0
-        elif am_pm == "pm" and hh != 12:
-            hh += 12
+        # Try format without leading zero (e.g., "5:15")
+        match = re.match(r'(\d):(\d{2})', time_str)
+        if match:
+            hh = int(match.group(1))
+            mm = int(match.group(2))
+            logger.debug(f"Parsed short format: {hh}:{mm}")
+            return PrayerTime(hour=hh, minute=mm)
 
-        return PrayerTime(hour=hh, minute=mm)
+        logger.warning(f"Could not parse time: '{time_str}', defaulting to 00:00")
+        return PrayerTime(hour=0, minute=0)
 
     def get_timings(self) -> Dict[str, PrayerTime]:
         today = date.today().strftime('%d-%m-%Y')
@@ -48,6 +68,7 @@ class PrayerSchedule:
 
         if response['code'] == 200:
             timings_data = response['data']['timings']
+            logger.debug(f"Raw API timings: {timings_data}")
             timings = {
                 'fajr': self._parse_time(timings_data['Fajr']),
                 'dhuhr': self._parse_time(timings_data['Dhuhr']),

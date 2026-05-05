@@ -1,4 +1,5 @@
 import argparse
+import sys
 from dataclasses import dataclass
 from logger import get_logger
 
@@ -9,8 +10,11 @@ DEFAULT_CITY = "Dortmund"
 DEFAULT_COUNTRY = "Germany"
 DEFAULT_USER = "biplobmac"
 DEFAULT_LOG = "log/prayer.log"
-DEFAULT_PYTHON = "/usr/bin/python"
 DEFAULT_PORT = 8000
+
+
+def get_python_executable() -> str:
+    return sys.executable
 
 
 @dataclass
@@ -27,7 +31,6 @@ class LocationConfig:
     city: str
     country: str
     user: str
-    python_path: str
 
 
 @dataclass
@@ -61,7 +64,6 @@ def create_parser() -> argparse.ArgumentParser:
     parser.add_argument('--country', default=None)
     parser.add_argument('--user', default=None)
     parser.add_argument('--log', default=None)
-    parser.add_argument('--python', default=None)
     parser.add_argument('--port', type=int, default=None)
     return parser
 
@@ -76,7 +78,6 @@ def get_config(args: argparse.Namespace, prompt: bool = False) -> Config:
     city = args.city
     country = args.country
     user = args.user
-    python_path = args.python or DEFAULT_PYTHON
 
     if prompt:
         city = city or prompt_for_value("City", DEFAULT_CITY)
@@ -94,8 +95,7 @@ def get_config(args: argparse.Namespace, prompt: bool = False) -> Config:
     location_config = LocationConfig(
         city=city or DEFAULT_CITY,
         country=country or DEFAULT_COUNTRY,
-        user=user or DEFAULT_USER,
-        python_path=python_path
+        user=user or DEFAULT_USER
     )
 
     return Config(adhan=adhan_config, location=location_config)

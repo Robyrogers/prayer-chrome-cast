@@ -1,5 +1,6 @@
 from os import getcwd
 from typing import Optional, Dict
+import sys
 import time
 import pychromecast
 import zeroconf
@@ -42,7 +43,6 @@ def discover_devices(timeout: int = 10) -> Dict[str, str]:
 
 def _build_command(
     user: str,
-    python_path: str,
     city: str,
     country: str,
     port: int,
@@ -53,10 +53,10 @@ def _build_command(
     is_fajr: bool = False,
     is_update: bool = False
 ) -> str:
+    python_exec = sys.executable
     cmd = (
-        f"cd $DIR && $PYTHON . "
+        f"cd $DIR && {python_exec} . "
         f"--user {user} "
-        f"--python {python_path} "
         f"--city {city} "
         f"--country {country} "
         f"--port {port} "
@@ -76,7 +76,6 @@ def _create_job(
     prayer: str,
     time: PrayerTime,
     user: str,
-    python_path: str,
     city: str,
     country: str,
     port: int,
@@ -86,15 +85,13 @@ def _create_job(
     log: str
 ) -> CronItem:
     cmd = _build_command(
-        user, python_path, city, country, port,
+        user, city, country, port,
         device_name, adhan, fajr_adhan, log,
         is_fajr=(prayer == 'Fajr')
     )
     job = CronItem(user=user, comment=f'{prayer} Prayer', command=cmd)
-    job.hour.on(time.hour)
-    job.minute.on(time.minute)
+    job.setall(time.minute, time.hour, '*', '*', '*')
     job.env['DIR'] = getcwd()
-    job.env['PYTHON'] = python_path
     return job
 
 
@@ -103,12 +100,11 @@ def update_prayer_schedule(
     city: str,
     country: str,
     cron: Optional[CronTab] = None,
-    python_path: str = "/usr/bin/python",
     port: int = 8000,
     device_name: str = "Living Room Speaker",
     adhan: str = "assets/azan.mp3",
     fajr_adhan: str = "assets/fajr_azan.mp3",
-    log: str = "~/logs/prayer.log"
+    log: str = "log/prayer.log"
 ) -> None:
     cron_in_use = cron if cron else CronTab(user=user)
 
@@ -121,7 +117,7 @@ def update_prayer_schedule(
         logger.info(f"Scheduling {prayer} prayer at {time_obj.hour:02d}:{time_obj.minute:02d}")
         cron_in_use.remove_all(comment=f'{prayer} Prayer')
         cron_in_use.append(_create_job(
-            prayer, time_obj, user, python_path, city, country, port,
+            prayer, time_obj, user, city, country, port,
             device_name, adhan, fajr_adhan, log
         ))
 
@@ -132,31 +128,29 @@ def update_prayer_schedule(
 
 def init_cron_job(
     user: str,
-    python_path: str,
     city: str,
     country: str,
     port: int = 8000,
     device_name: str = "Living Room Speaker",
     adhan: str = "assets/azan.mp3",
     fajr_adhan: str = "assets/fajr_azan.mp3",
-    log: str = "~/logs/prayer.log"
+    log: str = "log/prayer.log"
 ) -> None:
+    python_exec = sys.executable
     with CronTab(user=user) as cron:
         logger.info("Creating daily update cron job at 01:00")
         cmd = _build_command(
-            user, python_path, city, country, port,
+            user, city, country, port,
             device_name, adhan, fajr_adhan, log,
             is_update=True
         )
         job = CronItem(user=user, comment='Update Prayer', command=cmd)
-        job.minute.on(0)
-        job.hour.on(1)
+        job.setall(0, 1, '*', '*', '*')
         job.env['DIR'] = getcwd()
-        job.env['PYTHON'] = python_path
         cron.append(job)
 
         update_prayer_schedule(
-            user, city, country, cron, python_path,
+            user, city, country, cron,
             port, device_name, adhan, fajr_adhan, log
         )
 

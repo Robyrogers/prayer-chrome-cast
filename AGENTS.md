@@ -50,7 +50,6 @@ python . --update --city Dortmund --country Germany
 | `--country` | Country for prayer times | "Germany" |
 | `--user` | System user for cron | "biplobmac" |
 | `--log` | Log file path | "log/prayer.log" |
-| `--python` | Python interpreter path | "/usr/bin/python" |
 | `--fajr` | Play Fajr adhan (lower volume) | False |
 | `--setup` | Initialize cron jobs | - |
 | `--cleanup` | Remove all cron jobs | - |
