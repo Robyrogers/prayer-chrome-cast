@@ -31,19 +31,42 @@ def main() -> None:
     mode = args.mode
 
     if mode == 'setup':
-        from config import prompt_for_value, DEFAULT_CITY, DEFAULT_COUNTRY, DEFAULT_USER
+        from config import prompt_for_value, DEFAULT_CITY, DEFAULT_COUNTRY, DEFAULT_USER, DEFAULT_DEVICE_NAME
+        from scheduler import discover_devices
+
         city = args.city or prompt_for_value("City", DEFAULT_CITY)
         country = args.country or prompt_for_value("Country", DEFAULT_COUNTRY)
         user = args.user or prompt_for_value("User", DEFAULT_USER)
 
-        logger.info(f"Setting up cron jobs - city: {city}, country: {country}, user: {user}")
+        device_name = args.device_name
+        if device_name is None:
+            print("Searching for Chromecast devices (10 seconds)...")
+            devices = discover_devices(timeout=10)
+            if not devices:
+                print("ERROR: No Chromecast devices found on network.")
+                print("Please ensure your Chromecast is powered on and connected to the same network.")
+                return
+            print("Available devices:")
+            for i, name in enumerate(devices.values(), 1):
+                print(f"  {i}. {name}")
+            choice = input("Select device (number): ")
+            try:
+                device_name = list(devices.values())[int(choice) - 1]
+                print(f"Selected: {device_name}")
+            except (ValueError, IndexError):
+                print("ERROR: Invalid selection.")
+                return
+        else:
+            print(f"Using provided device: {device_name}")
+
+        logger.info(f"Setting up cron jobs - city: {city}, country: {country}, user: {user}, device: {device_name}")
         init_cron_job(
             user=user,
             python_path=config.location.python_path,
             city=city,
             country=country,
             port=config.adhan.port,
-            device_name=config.adhan.device_name,
+            device_name=device_name,
             adhan=config.adhan.adhan_file,
             fajr_adhan=config.adhan.fajr_adhan_file,
             log=config.adhan.log_file

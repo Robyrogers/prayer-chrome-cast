@@ -1,12 +1,43 @@
 from os import getcwd
-from typing import Optional
-from prayer import PrayerSchedule, Timings, PrayerTime
+from typing import Optional, Dict
+import time
+import pychromecast
+import zeroconf
+from prayer import PrayerSchedule, PrayerTime
 from crontab import CronTab, CronItem
 from logger import get_logger
 
 logger = get_logger(__name__)
 
 PRAYER_ORDER = ['Fajr', 'Dhuhr', 'Asr', 'Maghrib', 'Isha']
+
+
+class _DeviceListener:
+    def add_cast(self, uuid, service): pass
+    def remove_cast(self, uuid, service): pass
+    def update_cast(self, uuid, service): pass
+
+
+def discover_devices(timeout: int = 10) -> Dict[str, str]:
+    """Discover Chromecast devices on the network.
+
+    Args:
+        timeout: Number of seconds to search for devices.
+
+    Returns:
+        Dict mapping device UUID to friendly name.
+    """
+    logger.info(f"Searching for Chromecast devices (timeout: {timeout}s)")
+    zconf = zeroconf.Zeroconf()
+    browser = pychromecast.CastBrowser(_DeviceListener(), zconf)
+    browser.start_discovery()
+    time.sleep(timeout)
+    browser.stop_discovery()
+    zconf.close()
+
+    devices = {uuid: dev.friendly_name for uuid, dev in browser.devices.items()}
+    logger.info(f"Found {len(devices)} device(s)")
+    return devices
 
 
 def _build_command(
@@ -83,7 +114,7 @@ def update_prayer_schedule(
 
     logger.info("Fetching prayer schedule from API")
     schedule = PrayerSchedule(city, country)
-    timings: Timings = schedule.get_timings()
+    timings: Dict[str, PrayerTime] = schedule.get_timings()
 
     for name, time_obj in timings.items():
         prayer = PRAYER_ORDER[['fajr', 'dhuhr', 'asr', 'maghrib', 'isha'].index(name)]

@@ -1,5 +1,5 @@
 from dataclasses import dataclass
-from typing import Dict, Optional
+from typing import Dict
 import requests
 from datetime import date
 from logger import get_logger
@@ -13,24 +13,6 @@ logger = get_logger(__name__)
 class PrayerTime:
     hour: int
     minute: int
-
-
-@dataclass
-class Timings:
-    fajr: PrayerTime
-    dhuhr: PrayerTime
-    asr: PrayerTime
-    maghrib: PrayerTime
-    isha: PrayerTime
-
-    def items(self) -> Dict[str, PrayerTime]:
-        return {
-            'fajr': self.fajr,
-            'dhuhr': self.dhuhr,
-            'asr': self.asr,
-            'maghrib': self.maghrib,
-            'isha': self.isha
-        }
 
 
 class PrayerSchedule:
@@ -55,7 +37,7 @@ class PrayerSchedule:
 
         return PrayerTime(hour=hh, minute=mm)
 
-    def get_timings(self) -> Timings:
+    def get_timings(self) -> Dict[str, PrayerTime]:
         today = date.today().strftime('%d-%m-%Y')
         logger.info(f"Fetching prayer times for {self._city}, {self._country}")
 
@@ -66,13 +48,13 @@ class PrayerSchedule:
 
         if response['code'] == 200:
             timings_data = response['data']['timings']
-            timings = Timings(
-                fajr=self._parse_time(timings_data['Fajr']),
-                dhuhr=self._parse_time(timings_data['Dhuhr']),
-                asr=self._parse_time(timings_data['Asr']),
-                maghrib=self._parse_time(timings_data['Maghrib']),
-                isha=self._parse_time(timings_data['Isha'])
-            )
+            timings = {
+                'fajr': self._parse_time(timings_data['Fajr']),
+                'dhuhr': self._parse_time(timings_data['Dhuhr']),
+                'asr': self._parse_time(timings_data['Asr']),
+                'maghrib': self._parse_time(timings_data['Maghrib']),
+                'isha': self._parse_time(timings_data['Isha'])
+            }
             logger.info(f"Successfully retrieved prayer times: {timings}")
             return timings
         else:

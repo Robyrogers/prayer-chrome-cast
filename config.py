@@ -8,7 +8,7 @@ DEFAULT_DEVICE_NAME = "Living Room Speaker"
 DEFAULT_CITY = "Dortmund"
 DEFAULT_COUNTRY = "Germany"
 DEFAULT_USER = "biplobmac"
-DEFAULT_LOG = "~/logs/prayer.log"
+DEFAULT_LOG = "log/prayer.log"
 DEFAULT_PYTHON = "/usr/bin/python"
 DEFAULT_PORT = 8000
 
