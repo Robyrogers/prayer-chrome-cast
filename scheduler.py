@@ -1,15 +1,15 @@
 from os import getcwd
-from typing import Literal
-from PrayerSchedule import PrayerSchedule
+from typing import Optional
+from prayer import PrayerSchedule, Timings, PrayerTime
 from crontab import CronTab, CronItem
 from logger import get_logger
 
 logger = get_logger(__name__)
 
+PRAYER_ORDER = ['Fajr', 'Dhuhr', 'Asr', 'Maghrib', 'Isha']
 
-def create_prayer_job(
-    prayer: str,
-    time: dict[Literal['hh', 'mm'], int],
+
+def _build_command(
     user: str,
     python_path: str,
     city: str,
@@ -18,8 +18,10 @@ def create_prayer_job(
     device_name: str,
     adhan: str,
     fajr_adhan: str,
-    log: str
-):
+    log: str,
+    is_fajr: bool = False,
+    is_update: bool = False
+) -> str:
     cmd = (
         f"cd $DIR && $PYTHON . "
         f"--user {user} "
@@ -32,12 +34,34 @@ def create_prayer_job(
         f"--fajr-adhan \"{fajr_adhan}\" "
         f"--log \"{log}\""
     )
-    if prayer == 'Fajr':
+    if is_fajr:
         cmd += ' --fajr'
+    if is_update:
+        cmd += ' --update'
+    return cmd
 
+
+def _create_job(
+    prayer: str,
+    time: PrayerTime,
+    user: str,
+    python_path: str,
+    city: str,
+    country: str,
+    port: int,
+    device_name: str,
+    adhan: str,
+    fajr_adhan: str,
+    log: str
+) -> CronItem:
+    cmd = _build_command(
+        user, python_path, city, country, port,
+        device_name, adhan, fajr_adhan, log,
+        is_fajr=(prayer == 'Fajr')
+    )
     job = CronItem(user=user, comment=f'{prayer} Prayer', command=cmd)
-    job.hour.on(time['hh'])
-    job.minute.on(time['mm'])
+    job.hour.on(time.hour)
+    job.minute.on(time.minute)
     job.env['DIR'] = getcwd()
     job.env['PYTHON'] = python_path
     return job
@@ -47,29 +71,30 @@ def update_prayer_schedule(
     user: str,
     city: str,
     country: str,
-    cron: CronTab = None,
+    cron: Optional[CronTab] = None,
     python_path: str = "/usr/bin/python",
     port: int = 8000,
     device_name: str = "Living Room Speaker",
-    adhan: str = "Azan_Mecca.mp3",
-    fajr_adhan: str = "Fajr_Azan_Mecca.mp3",
+    adhan: str = "assets/azan.mp3",
+    fajr_adhan: str = "assets/fajr_azan.mp3",
     log: str = "~/logs/prayer.log"
-):
+) -> None:
     cron_in_use = cron if cron else CronTab(user=user)
 
     logger.info("Fetching prayer schedule from API")
-    prayer_schedule = PrayerSchedule(city, country)
-    timings = prayer_schedule.get_timings()
+    schedule = PrayerSchedule(city, country)
+    timings: Timings = schedule.get_timings()
 
-    for prayer, time in timings.items():
-        logger.info(f"Scheduling {prayer} prayer at {time['hh']:02d}:{time['mm']:02d}")
+    for name, time_obj in timings.items():
+        prayer = PRAYER_ORDER[['fajr', 'dhuhr', 'asr', 'maghrib', 'isha'].index(name)]
+        logger.info(f"Scheduling {prayer} prayer at {time_obj.hour:02d}:{time_obj.minute:02d}")
         cron_in_use.remove_all(comment=f'{prayer} Prayer')
-        cron_in_use.append(create_prayer_job(
-            prayer, time, user, python_path, city, country, port,
+        cron_in_use.append(_create_job(
+            prayer, time_obj, user, python_path, city, country, port,
             device_name, adhan, fajr_adhan, log
         ))
 
-    if cron == None:
+    if cron is None:
         cron_in_use.write()
         logger.info("Prayer schedule updated in cron")
 
@@ -81,17 +106,18 @@ def init_cron_job(
     country: str,
     port: int = 8000,
     device_name: str = "Living Room Speaker",
-    adhan: str = "Azan_Mecca.mp3",
-    fajr_adhan: str = "Fajr_Azan_Mecca.mp3",
+    adhan: str = "assets/azan.mp3",
+    fajr_adhan: str = "assets/fajr_azan.mp3",
     log: str = "~/logs/prayer.log"
-):
+) -> None:
     with CronTab(user=user) as cron:
         logger.info("Creating daily update cron job at 01:00")
-        job = CronItem(
-            user=user,
-            comment='Update Prayer',
-            command=f"cd $DIR && $PYTHON . --user {user} --python {python_path} --city {city} --country {country} --port {port} --device-name \"{device_name}\" --adhan \"{adhan}\" --fajr-adhan \"{fajr_adhan}\" --log \"{log}\" --update"
+        cmd = _build_command(
+            user, python_path, city, country, port,
+            device_name, adhan, fajr_adhan, log,
+            is_update=True
         )
+        job = CronItem(user=user, comment='Update Prayer', command=cmd)
         job.minute.on(0)
         job.hour.on(1)
         job.env['DIR'] = getcwd()
@@ -104,7 +130,7 @@ def init_cron_job(
         )
 
 
-def clean_up_cron_jobs(user: str):
+def clean_up_cron_jobs(user: str) -> None:
     with CronTab(user=user) as cron:
         for prayer in ['Update', 'Fajr', 'Dhuhr', 'Asr', 'Maghrib', 'Isha']:
             removed = cron.remove_all(comment=f'{prayer} Prayer')
