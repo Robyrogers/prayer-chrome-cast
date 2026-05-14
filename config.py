@@ -3,22 +3,24 @@ import sys
 from dataclasses import dataclass
 from logger import get_logger
 
-DEFAULT_ADHAN = "assets/azan.mp3"
-DEFAULT_FAJR_ADHAN = "assets/fajr_azan.mp3"
-DEFAULT_DEVICE_NAME = "Living Room Speaker"
-DEFAULT_CITY = "Dortmund"
-DEFAULT_COUNTRY = "Germany"
-DEFAULT_USER = "biplobmac"
-DEFAULT_LOG = "log/prayer.log"
-DEFAULT_PORT = 8000
+HINT_ADHAN = "assets/azan.mp3"
+HINT_FAJR_ADHAN = "assets/fajr_azan.mp3"
+HINT_DEVICE_NAME = "e.g., Living Room Speaker"
+HINT_CITY = "e.g., Dortmund"
+HINT_COUNTRY = "e.g., Germany"
+HINT_USER = "e.g., biplobmac"
+HINT_LOG = "e.g., log/prayer.log"
+HINT_PORT = "e.g., 8000"
 
 
 def get_python_executable() -> str:
+    """Return the path to the current Python interpreter."""
     return sys.executable
 
 
 @dataclass
 class AdhanConfig:
+    """Configuration for adhan playback and Chromecast device."""
     device_name: str
     port: int
     adhan_file: str
@@ -28,6 +30,7 @@ class AdhanConfig:
 
 @dataclass
 class LocationConfig:
+    """Configuration for location-based prayer time settings."""
     city: str
     country: str
     user: str
@@ -35,20 +38,36 @@ class LocationConfig:
 
 @dataclass
 class Config:
+    """Main configuration container for the adhan caster."""
     adhan: AdhanConfig
     location: LocationConfig
 
 
-def prompt_for_value(prompt_text: str, default: str = None) -> str:
-    if default:
-        value = input(f"{prompt_text} (default: {default}): ")
-        return value.strip() if value.strip() else default
+def prompt_for_value(prompt_text: str, hint: str = None) -> str:
+    """Prompt the user for a value with an optional hint.
+
+    Args:
+        prompt_text: The prompt to display to the user.
+        hint: Optional hint/example to display in brackets.
+
+    Returns:
+        The user's input stripped of whitespace, or None if empty.
+    """
+    if hint:
+        value = input(f"{prompt_text} [{hint}]: ")
     else:
         value = input(f"{prompt_text}: ")
-        return value.strip()
+    if not value.strip():
+        return None
+    return value.strip()
 
 
 def create_parser() -> argparse.ArgumentParser:
+    """Create and return the command-line argument parser.
+
+    Returns:
+        Configured ArgumentParser for the adhan caster CLI.
+    """
     parser = argparse.ArgumentParser(
         description="Casting the adhan to a chromecast device in the home network"
     )
@@ -68,21 +87,68 @@ def create_parser() -> argparse.ArgumentParser:
     return parser
 
 
-def get_config(args: argparse.Namespace, prompt: bool = False) -> Config:
-    device_name = args.device_name or DEFAULT_DEVICE_NAME
-    port = args.port or DEFAULT_PORT
-    adhan_file = args.adhan or DEFAULT_ADHAN
-    fajr_adhan_file = args.fajr_adhan or DEFAULT_FAJR_ADHAN
-    log_file = args.log or DEFAULT_LOG
+def prompt_required(prompt_text: str, hint: str = None) -> str:
+    """Prompt for a required value, looping until non-empty input is given.
+
+    Args:
+        prompt_text: The prompt to display to the user.
+        hint: Optional hint/example to display in brackets.
+
+    Returns:
+        The user's non-empty input.
+
+    Raises:
+        KeyboardInterrupt: If user cancels the input.
+    """
+    while True:
+        value = prompt_for_value(prompt_text, hint)
+        if value:
+            return value
+        print("This field is required. Please enter a value.")
+
+
+def get_config(args: argparse.Namespace, prompt: bool = False, require_all: bool = True) -> Config:
+    """Build a Config object from parsed command-line arguments.
+
+    Args:
+        args: Parsed argparse.Namespace containing CLI arguments.
+        prompt: If True, prompt interactively for missing required fields.
+        require_all: If True, raise ValueError for missing required fields.
+                     If False, allow None values for optional fields.
+
+    Returns:
+        A Config object with adhan and location sub-configs.
+
+    Raises:
+        ValueError: If required fields are missing and require_all is True.
+    """
+    device_name = args.device_name
+    port = args.port if args.port is not None else 8000
+    adhan_file = args.adhan
+    fajr_adhan_file = args.fajr_adhan
+    log_file = args.log
 
     city = args.city
     country = args.country
     user = args.user
 
     if prompt:
-        city = city or prompt_for_value("City", DEFAULT_CITY)
-        country = country or prompt_for_value("Country", DEFAULT_COUNTRY)
-        user = user or prompt_for_value("User", DEFAULT_USER)
+        if not city:
+            city = prompt_required("City", HINT_CITY)
+        if not country:
+            country = prompt_required("Country", HINT_COUNTRY)
+        if not user:
+            user = prompt_required("User", HINT_USER)
+
+    if require_all:
+        if not device_name:
+            raise ValueError("device_name is required. Use --device-name or run with --setup to select interactively.")
+        if not city:
+            raise ValueError("city is required. Use --city or run with --setup to enter interactively.")
+        if not country:
+            raise ValueError("country is required. Use --country or run with --setup to enter interactively.")
+        if not user:
+            raise ValueError("user is required. Use --user or run with --setup to enter interactively.")
 
     adhan_config = AdhanConfig(
         device_name=device_name,
@@ -93,9 +159,9 @@ def get_config(args: argparse.Namespace, prompt: bool = False) -> Config:
     )
 
     location_config = LocationConfig(
-        city=city or DEFAULT_CITY,
-        country=country or DEFAULT_COUNTRY,
-        user=user or DEFAULT_USER
+        city=city,
+        country=country,
+        user=user
     )
 
     return Config(adhan=adhan_config, location=location_config)

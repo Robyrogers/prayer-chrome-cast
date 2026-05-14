@@ -9,6 +9,37 @@ logger = get_logger(__name__)
 
 
 class MediaCaster:
+    @staticmethod
+    def discover_and_select(timeout: int = 10) -> Optional[str]:
+        """Discover Chromecast devices and prompt user to select one.
+
+        Args:
+            timeout: Maximum time to wait for discovery in seconds.
+
+        Returns:
+            Selected device name, or None if no devices found or selection cancelled.
+        """
+        from scheduler import discover_devices as _discover_devices
+        devices = _discover_devices(timeout=timeout)
+        if not devices:
+            print("ERROR: No Chromecast devices found on network.")
+            print("Please ensure your Chromecast is powered on and connected to the same network.")
+            return None
+
+        print(f"Searching for Chromecast devices ({timeout} seconds)...")
+        print("Available devices:")
+        for i, name in enumerate(devices.values(), 1):
+            print(f"  {i}. {name}")
+
+        choice = input("Select device (number): ")
+        try:
+            device_name = list(devices.values())[int(choice) - 1]
+            print(f"Selected: {device_name}")
+            return device_name
+        except (ValueError, IndexError):
+            print("ERROR: Invalid selection.")
+            return None
+
     def __init__(self, device_name: str, port: int = 8000) -> None:
         self._device_name = device_name
         self._port = port
@@ -55,14 +86,13 @@ class MediaCaster:
             audio_url = self._base_url + audio_source
 
         logger.info(f"Casting audio from: {audio_url}")
-        if volume is not None:
-            logger.debug(f"Setting volume to: {volume}")
-
+        
         device = self._device
         device.wait(5)
 
         reset = None
         if volume is not None:
+            logger.debug(f"Setting volume to: {volume}")
             reset = self._set_temporary_volume(volume)
 
         media_controller = device.media_controller
