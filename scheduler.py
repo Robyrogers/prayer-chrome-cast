@@ -7,6 +7,7 @@ import zeroconf
 from prayer import PrayerSchedule, PrayerTime
 from crontab import CronTab, CronItem
 from logger import get_logger
+from config import DEFAULT_PORT, DEFAULT_ADHAN, DEFAULT_FAJR_ADHAN, DEFAULT_LOG
 
 logger = get_logger(__name__)
 
@@ -59,12 +60,16 @@ def _build_command(
         f"--user {user} "
         f"--city {city} "
         f"--country {country} "
-        f"--port {port} "
-        f"--device-name \"{device_name}\" "
-        f"--adhan \"{adhan}\" "
-        f"--fajr-adhan \"{fajr_adhan}\" "
-        f"--log \"{log}\""
+        f"--device-name \"{device_name}\""
     )
+    if port != DEFAULT_PORT:
+        cmd += f' --port {port}'
+    if adhan != DEFAULT_ADHAN:
+        cmd += f' --adhan "{adhan}"'
+    if fajr_adhan != DEFAULT_FAJR_ADHAN:
+        cmd += f' --fajr-adhan "{fajr_adhan}"'
+    if log != DEFAULT_LOG:
+        cmd += f' --log "{log}"'
     if is_fajr:
         cmd += ' --fajr'
     if is_update:

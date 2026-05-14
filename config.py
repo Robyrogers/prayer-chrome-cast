@@ -3,14 +3,19 @@ import sys
 from dataclasses import dataclass
 from logger import get_logger
 
-HINT_ADHAN = "assets/azan.mp3"
-HINT_FAJR_ADHAN = "assets/fajr_azan.mp3"
+DEFAULT_PORT = 8000
+DEFAULT_ADHAN = "assets/azan.mp3"
+DEFAULT_FAJR_ADHAN = "assets/fajr_azan.mp3"
+DEFAULT_LOG = "log/prayer.log"
+
+HINT_PORT = str(DEFAULT_PORT)
+HINT_ADHAN = DEFAULT_ADHAN
+HINT_FAJR_ADHAN = DEFAULT_FAJR_ADHAN
+HINT_LOG = DEFAULT_LOG
 HINT_DEVICE_NAME = "e.g., Living Room Speaker"
 HINT_CITY = "e.g., Dortmund"
 HINT_COUNTRY = "e.g., Germany"
 HINT_USER = "e.g., biplobmac"
-HINT_LOG = "e.g., log/prayer.log"
-HINT_PORT = "e.g., 8000"
 
 
 def get_python_executable() -> str:
@@ -77,13 +82,13 @@ def create_parser() -> argparse.ArgumentParser:
     parser.add_argument('--update', dest='mode', action='store_const', const='update')
     parser.add_argument('--status', dest='mode', action='store_const', const='status')
     parser.add_argument('--device-name', default=None)
-    parser.add_argument('--adhan', default=None)
-    parser.add_argument('--fajr-adhan', default=None)
+    parser.add_argument('--adhan', default=DEFAULT_ADHAN)
+    parser.add_argument('--fajr-adhan', default=DEFAULT_FAJR_ADHAN)
     parser.add_argument('--city', default=None)
     parser.add_argument('--country', default=None)
     parser.add_argument('--user', default=None)
-    parser.add_argument('--log', default=None)
-    parser.add_argument('--port', type=int, default=None)
+    parser.add_argument('--log', default=DEFAULT_LOG)
+    parser.add_argument('--port', type=int, default=DEFAULT_PORT)
     return parser
 
 
@@ -123,7 +128,7 @@ def get_config(args: argparse.Namespace, prompt: bool = False, require_all: bool
         ValueError: If required fields are missing and require_all is True.
     """
     device_name = args.device_name
-    port = args.port if args.port is not None else 8000
+    port = args.port
     adhan_file = args.adhan
     fajr_adhan_file = args.fajr_adhan
     log_file = args.log
