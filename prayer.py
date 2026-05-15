@@ -17,9 +17,8 @@ class PrayerTime:
 
 
 class PrayerSchedule:
-    def __init__(self, city: str, country: str) -> None:
-        self._city = city
-        self._country = country
+    def __init__(self, address: str) -> None:
+        self._address = address
 
     def _parse_time(self, time_str: str) -> PrayerTime:
         time_str = time_str.strip()
@@ -59,11 +58,11 @@ class PrayerSchedule:
 
     def get_timings(self) -> Dict[str, PrayerTime]:
         today = date.today().strftime('%d-%m-%Y')
-        logger.info(f"Fetching prayer times for {self._city}, {self._country}")
+        logger.info(f"Fetching prayer times for {self._address}")
 
         response = requests.get(
-            f"http://api.aladhan.com/v1/timingsByCity/{today}",
-            {'city': self._city, 'country': self._country, 'method': 3}
+            f"https://api.aladhan.com/v1/timingsByAddress/{today}",
+            {'address': self._address, 'method': 3}
         ).json()
 
         if response['code'] == 200:

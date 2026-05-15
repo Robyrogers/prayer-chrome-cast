@@ -12,7 +12,7 @@ logger = get_logger(__name__, config.adhan.log_file)
 
 def play_mode() -> None:
     """Default mode - play adhan to Chromecast device."""
-    from config import prompt_required, HINT_CITY, HINT_COUNTRY, HINT_USER
+    from config import prompt_required, HINT_ADDRESS, HINT_USER
 
     if not config.adhan.device_name:
         config.adhan.device_name = MediaCaster.discover_and_select(timeout=10)
@@ -20,10 +20,8 @@ def play_mode() -> None:
             print("No device selected. Exiting...")
             return
 
-    if not config.location.city:
-        config.location.city = prompt_required("City", HINT_CITY)
-    if not config.location.country:
-        config.location.country = prompt_required("Country", HINT_COUNTRY)
+    if not config.location.address:
+        config.location.address = prompt_required("Address", HINT_ADDRESS)
     if not config.location.user:
         config.location.user = prompt_required("User", HINT_USER)
 
@@ -45,10 +43,9 @@ def play_mode() -> None:
 
 def setup_mode() -> None:
     """Initialize cron jobs for prayer schedule."""
-    from config import prompt_required, HINT_CITY, HINT_COUNTRY, HINT_USER
+    from config import prompt_required, HINT_ADDRESS, HINT_USER
 
-    city = args.city or prompt_required("City", HINT_CITY)
-    country = args.country or prompt_required("Country", HINT_COUNTRY)
+    address = args.address or prompt_required("Address", HINT_ADDRESS)
     user = args.user or prompt_required("User", HINT_USER)
 
     device_name = args.device_name
@@ -60,11 +57,10 @@ def setup_mode() -> None:
     else:
         print(f"Using provided device: {device_name}")
 
-    logger.info(f"Setting up cron jobs - city: {city}, country: {country}, user: {user}, device: {device_name}")
+    logger.info(f"Setting up cron jobs - address: {address}, user: {user}, device: {device_name}")
     init_cron_job(
         user=user,
-        city=city,
-        country=country,
+        address=address,
         port=config.adhan.port,
         device_name=device_name,
         adhan=config.adhan.adhan_file,
@@ -86,17 +82,15 @@ def cleanup_mode() -> None:
 
 def update_mode() -> None:
     """Refresh prayer times from API and update cron."""
-    from config import prompt_required, HINT_CITY, HINT_COUNTRY, HINT_USER
+    from config import prompt_required, HINT_ADDRESS, HINT_USER
 
-    city = args.city or prompt_required("City", HINT_CITY)
-    country = args.country or prompt_required("Country", HINT_COUNTRY)
+    address = args.address or prompt_required("Address", HINT_ADDRESS)
     user = args.user or prompt_required("User", HINT_USER)
 
     logger.info("Updating prayer schedule from API")
     update_prayer_schedule(
         user=user,
-        city=city,
-        country=country,
+        address=address,
         port=config.adhan.port,
         device_name=config.adhan.device_name,
         adhan=config.adhan.adhan_file,

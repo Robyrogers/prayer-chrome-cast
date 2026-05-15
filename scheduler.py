@@ -44,8 +44,7 @@ def discover_devices(timeout: int = 10) -> Dict[str, str]:
 
 def _build_command(
     user: str,
-    city: str,
-    country: str,
+    address: str,
     port: int,
     device_name: str,
     adhan: str,
@@ -58,8 +57,7 @@ def _build_command(
     cmd = (
         f"cd $DIR && {python_exec} . "
         f"--user {user} "
-        f"--city {city} "
-        f"--country {country} "
+        f"--address \"{address}\" "
         f"--device-name \"{device_name}\""
     )
     if port != DEFAULT_PORT:
@@ -81,8 +79,7 @@ def _create_job(
     prayer: str,
     time: PrayerTime,
     user: str,
-    city: str,
-    country: str,
+    address: str,
     port: int,
     device_name: str,
     adhan: str,
@@ -90,7 +87,7 @@ def _create_job(
     log: str
 ) -> CronItem:
     cmd = _build_command(
-        user, city, country, port,
+        user, address, port,
         device_name, adhan, fajr_adhan, log,
         is_fajr=(prayer == 'Fajr')
     )
@@ -102,19 +99,24 @@ def _create_job(
 
 def update_prayer_schedule(
     user: str,
-    city: str,
-    country: str,
+    address: str,
     cron: Optional[CronTab] = None,
-    port: int = 8000,
-    device_name: str = "Living Room Speaker",
-    adhan: str = "assets/azan.mp3",
-    fajr_adhan: str = "assets/fajr_azan.mp3",
-    log: str = "log/prayer.log"
+    port: Optional[int] = None,
+    device_name: Optional[str] = None,
+    adhan: Optional[str] = None,
+    fajr_adhan: Optional[str] = None,
+    log: Optional[str] = None
 ) -> None:
+    port = port if port is not None else DEFAULT_PORT
+    device_name = device_name if device_name else "Living Room Speaker"
+    adhan = adhan if adhan is not None else DEFAULT_ADHAN
+    fajr_adhan = fajr_adhan if fajr_adhan is not None else DEFAULT_FAJR_ADHAN
+    log = log if log is not None else DEFAULT_LOG
+
     cron_in_use = cron if cron else CronTab(user=user)
 
     logger.info("Fetching prayer schedule from API")
-    schedule = PrayerSchedule(city, country)
+    schedule = PrayerSchedule(address)
     timings: Dict[str, PrayerTime] = schedule.get_timings()
 
     for name, time_obj in timings.items():
@@ -122,7 +124,7 @@ def update_prayer_schedule(
         logger.info(f"Scheduling {prayer} prayer at {time_obj.hour:02d}:{time_obj.minute:02d}")
         cron_in_use.remove_all(comment=f'{prayer} Prayer')
         cron_in_use.append(_create_job(
-            prayer, time_obj, user, city, country, port,
+            prayer, time_obj, user, address, port,
             device_name, adhan, fajr_adhan, log
         ))
 
@@ -133,19 +135,24 @@ def update_prayer_schedule(
 
 def init_cron_job(
     user: str,
-    city: str,
-    country: str,
-    port: int = 8000,
-    device_name: str = "Living Room Speaker",
-    adhan: str = "assets/azan.mp3",
-    fajr_adhan: str = "assets/fajr_azan.mp3",
-    log: str = "log/prayer.log"
+    address: str,
+    port: Optional[int] = None,
+    device_name: Optional[str] = None,
+    adhan: Optional[str] = None,
+    fajr_adhan: Optional[str] = None,
+    log: Optional[str] = None
 ) -> None:
+    port = port if port is not None else DEFAULT_PORT
+    device_name = device_name if device_name else "Living Room Speaker"
+    adhan = adhan if adhan is not None else DEFAULT_ADHAN
+    fajr_adhan = fajr_adhan if fajr_adhan is not None else DEFAULT_FAJR_ADHAN
+    log = log if log is not None else DEFAULT_LOG
+
     python_exec = sys.executable
     with CronTab(user=user) as cron:
         logger.info("Creating daily update cron job at 01:00")
         cmd = _build_command(
-            user, city, country, port,
+            user, address, port,
             device_name, adhan, fajr_adhan, log,
             is_update=True
         )
@@ -155,7 +162,7 @@ def init_cron_job(
         cron.append(job)
 
         update_prayer_schedule(
-            user, city, country, cron,
+            user, address, cron,
             port, device_name, adhan, fajr_adhan, log
         )
 

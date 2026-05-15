@@ -13,8 +13,7 @@ HINT_ADHAN = DEFAULT_ADHAN
 HINT_FAJR_ADHAN = DEFAULT_FAJR_ADHAN
 HINT_LOG = DEFAULT_LOG
 HINT_DEVICE_NAME = "e.g., Living Room Speaker"
-HINT_CITY = "e.g., Dortmund"
-HINT_COUNTRY = "e.g., Germany"
+HINT_ADDRESS = "e.g., Dortmund, Germany"
 HINT_USER = "e.g., biplobmac"
 
 
@@ -36,8 +35,7 @@ class AdhanConfig:
 @dataclass
 class LocationConfig:
     """Configuration for location-based prayer time settings."""
-    city: str
-    country: str
+    address: str
     user: str
 
 
@@ -84,8 +82,7 @@ def create_parser() -> argparse.ArgumentParser:
     parser.add_argument('--device-name', default=None)
     parser.add_argument('--adhan', default=DEFAULT_ADHAN)
     parser.add_argument('--fajr-adhan', default=DEFAULT_FAJR_ADHAN)
-    parser.add_argument('--city', default=None)
-    parser.add_argument('--country', default=None)
+    parser.add_argument('--address', default=None)
     parser.add_argument('--user', default=None)
     parser.add_argument('--log', default=DEFAULT_LOG)
     parser.add_argument('--port', type=int, default=DEFAULT_PORT)
@@ -133,25 +130,20 @@ def get_config(args: argparse.Namespace, prompt: bool = False, require_all: bool
     fajr_adhan_file = args.fajr_adhan
     log_file = args.log
 
-    city = args.city
-    country = args.country
+    address = args.address
     user = args.user
 
     if prompt:
-        if not city:
-            city = prompt_required("City", HINT_CITY)
-        if not country:
-            country = prompt_required("Country", HINT_COUNTRY)
+        if not address:
+            address = prompt_required("Address", HINT_ADDRESS)
         if not user:
             user = prompt_required("User", HINT_USER)
 
     if require_all:
         if not device_name:
             raise ValueError("device_name is required. Use --device-name or run with --setup to select interactively.")
-        if not city:
-            raise ValueError("city is required. Use --city or run with --setup to enter interactively.")
-        if not country:
-            raise ValueError("country is required. Use --country or run with --setup to enter interactively.")
+        if not address:
+            raise ValueError("address is required. Use --address or run with --setup to enter interactively.")
         if not user:
             raise ValueError("user is required. Use --user or run with --setup to enter interactively.")
 
@@ -164,8 +156,7 @@ def get_config(args: argparse.Namespace, prompt: bool = False, require_all: bool
     )
 
     location_config = LocationConfig(
-        city=city,
-        country=country,
+        address=address,
         user=user
     )
 
