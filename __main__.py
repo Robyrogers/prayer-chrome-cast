@@ -10,12 +10,23 @@ config = get_config(args, require_all=False)
 logger = get_logger(__name__, config.adhan.log_file)
 
 
-def prayer_call() -> None:
-    """Play the adhan audio to the configured Chromecast device.
+def play_mode() -> None:
+    """Default mode - play adhan to Chromecast device."""
+    from config import prompt_required, HINT_CITY, HINT_COUNTRY, HINT_USER
 
-    Uses the device name and audio files from the configuration.
-    If --fajr flag is set, plays Fajr adhan at reduced volume (0.7).
-    """
+    if not config.adhan.device_name:
+        config.adhan.device_name = MediaCaster.discover_and_select(timeout=10)
+        if config.adhan.device_name is None:
+            print("No device selected. Exiting...")
+            return
+
+    if not config.location.city:
+        config.location.city = prompt_required("City", HINT_CITY)
+    if not config.location.country:
+        config.location.country = prompt_required("Country", HINT_COUNTRY)
+    if not config.location.user:
+        config.location.user = prompt_required("User", HINT_USER)
+
     adhan_config = config.adhan
     logger.info(f"Starting adhan playback - Fajr: {args.fajr}")
     try:
@@ -32,89 +43,78 @@ def prayer_call() -> None:
         logger.error(f"Adhan playback failed: {e}")
 
 
-def main() -> None:
-    """Main entry point for the adhan caster CLI.
+def setup_mode() -> None:
+    """Initialize cron jobs for prayer schedule."""
+    from config import prompt_required, HINT_CITY, HINT_COUNTRY, HINT_USER
 
-    Routes to appropriate functionality based on the selected mode:
-    - setup: Initialize cron jobs for prayer schedule
-    - cleanup: Remove all cron jobs
-    - update: Refresh prayer times from API and update cron
-    - default: Play adhan to Chromecast device
-    """
-    mode = args.mode
+    city = args.city or prompt_required("City", HINT_CITY)
+    country = args.country or prompt_required("Country", HINT_COUNTRY)
+    user = args.user or prompt_required("User", HINT_USER)
 
-    if mode == 'setup':
-        from config import prompt_required, HINT_CITY, HINT_COUNTRY, HINT_USER, HINT_DEVICE_NAME
-
-        city = args.city or prompt_required("City", HINT_CITY)
-        country = args.country or prompt_required("Country", HINT_COUNTRY)
-        user = args.user or prompt_required("User", HINT_USER)
-
-        device_name = args.device_name
+    device_name = args.device_name
+    if device_name is None:
+        device_name = MediaCaster.discover_and_select(timeout=10)
         if device_name is None:
-            device_name = MediaCaster.discover_and_select(timeout=10)
-            if device_name is None:
-                print("No device Selected. Exiting...")
-                return
-        else:
-            print(f"Using provided device: {device_name}")
-
-        logger.info(f"Setting up cron jobs - city: {city}, country: {country}, user: {user}, device: {device_name}")
-        init_cron_job(
-            user=user,
-            city=city,
-            country=country,
-            port=config.adhan.port,
-            device_name=device_name,
-            adhan=config.adhan.adhan_file,
-            fajr_adhan=config.adhan.fajr_adhan_file,
-            log=config.adhan.log_file
-        )
-        logger.info("Cron jobs setup completed")
-
-    elif mode == 'cleanup':
-        from config import prompt_required, HINT_USER
-        user = args.user or prompt_required("User", HINT_USER)
-        logger.info("Cleaning up cron jobs")
-        clean_up_cron_jobs(user)
-        logger.info("Cron jobs cleanup completed")
-
-    elif mode == 'update':
-        from config import prompt_required, HINT_CITY, HINT_COUNTRY, HINT_USER
-        city = args.city or prompt_required("City", HINT_CITY)
-        country = args.country or prompt_required("Country", HINT_COUNTRY)
-        user = args.user or prompt_required("User", HINT_USER)
-
-        logger.info("Updating prayer schedule from API")
-        update_prayer_schedule(
-            user=user,
-            city=city,
-            country=country,
-            port=config.adhan.port,
-            device_name=config.adhan.device_name,
-            adhan=config.adhan.adhan_file,
-            fajr_adhan=config.adhan.fajr_adhan_file,
-            log=config.adhan.log_file
-        )
-        logger.info("Prayer schedule update completed")
-
+            print("No device selected. Exiting...")
+            return
     else:
-        from config import prompt_required, HINT_CITY, HINT_COUNTRY, HINT_USER, HINT_DEVICE_NAME
+        print(f"Using provided device: {device_name}")
 
-        if not config.adhan.device_name:
-            config.adhan.device_name = MediaCaster.discover_and_select(timeout=10)
-            if config.adhan.device_name is None:
-                print("No device Selected. Exiting...")
-                return
+    logger.info(f"Setting up cron jobs - city: {city}, country: {country}, user: {user}, device: {device_name}")
+    init_cron_job(
+        user=user,
+        city=city,
+        country=country,
+        port=config.adhan.port,
+        device_name=device_name,
+        adhan=config.adhan.adhan_file,
+        fajr_adhan=config.adhan.fajr_adhan_file,
+        log=config.adhan.log_file
+    )
+    logger.info("Cron jobs setup completed")
 
-        if not config.location.city:
-            config.location.city = prompt_required("City", HINT_CITY)
-        if not config.location.country:
-            config.location.country = prompt_required("Country", HINT_COUNTRY)
-        if not config.location.user:
-            config.location.user = prompt_required("User", HINT_USER)
 
-        prayer_call()
+def cleanup_mode() -> None:
+    """Remove all cron jobs."""
+    from config import prompt_required, HINT_USER
+
+    user = args.user or prompt_required("User", HINT_USER)
+    logger.info("Cleaning up cron jobs")
+    clean_up_cron_jobs(user)
+    logger.info("Cron jobs cleanup completed")
+
+
+def update_mode() -> None:
+    """Refresh prayer times from API and update cron."""
+    from config import prompt_required, HINT_CITY, HINT_COUNTRY, HINT_USER
+
+    city = args.city or prompt_required("City", HINT_CITY)
+    country = args.country or prompt_required("Country", HINT_COUNTRY)
+    user = args.user or prompt_required("User", HINT_USER)
+
+    logger.info("Updating prayer schedule from API")
+    update_prayer_schedule(
+        user=user,
+        city=city,
+        country=country,
+        port=config.adhan.port,
+        device_name=config.adhan.device_name,
+        adhan=config.adhan.adhan_file,
+        fajr_adhan=config.adhan.fajr_adhan_file,
+        log=config.adhan.log_file
+    )
+    logger.info("Prayer schedule update completed")
+
+
+def main() -> None:
+    """Dispatch to appropriate mode function based on CLI arguments."""
+    mode_dispatch = {
+        'setup': setup_mode,
+        'cleanup': cleanup_mode,
+        'update': update_mode,
+    }
+    mode_fn = mode_dispatch.get(args.mode, play_mode)
+    mode_fn()
 
 
 if __name__ == '__main__':
