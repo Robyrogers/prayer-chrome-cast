@@ -1,4 +1,4 @@
-from config import create_parser, get_config, Config
+from config import create_parser, get_config, Config, prompt_required, HINT_ADDRESS
 from media import MediaCaster
 from scheduler import init_cron_job, update_prayer_schedule, clean_up_cron_jobs, get_current_user
 from logger import get_logger
@@ -14,6 +14,9 @@ def play_mode(config: Config, user: str) -> None:
         if config.adhan.device_name is None:
             print("No device selected. Exiting...")
             return
+
+    if not config.location.address:
+        config.location.address = prompt_required("Address", HINT_ADDRESS)
 
     logger = get_logger(__name__, config.adhan.log_file)
     logger.info(f"Starting adhan playback - Fajr: {args.fajr}")
@@ -33,6 +36,9 @@ def play_mode(config: Config, user: str) -> None:
 
 def setup_mode(config: Config, user: str) -> None:
     """Initialize cron jobs for prayer schedule."""
+    if not config.location.address:
+        config.location.address = prompt_required("Address", HINT_ADDRESS)
+
     device_name = config.adhan.device_name
     if device_name is None:
         device_name = MediaCaster.discover_and_select(timeout=10)
@@ -64,6 +70,9 @@ def cleanup_mode(config: Config, user: str) -> None:
 
 def update_mode(config: Config, user: str) -> None:
     """Refresh prayer times from API and update cron."""
+    if not config.location.address:
+        config.location.address = prompt_required("Address", HINT_ADDRESS)
+
     logger = get_logger(__name__, config.adhan.log_file)
     logger.info("Updating prayer schedule from API")
     update_prayer_schedule(

@@ -34,7 +34,7 @@ class AdhanConfig:
 @dataclass
 class LocationConfig:
     """Configuration for location-based prayer time settings."""
-    address: str
+    address: str = None
 
 
 @dataclass
@@ -109,9 +109,6 @@ def prompt_required(prompt_text: str, hint: str = None) -> str:
 def get_config(args: argparse.Namespace) -> Config:
     """Build a Config object from parsed command-line arguments.
 
-    Prompts for required fields (address) if not provided via CLI.
-    Device name is left as None if not provided - caller handles discovery.
-
     Args:
         args: Parsed argparse.Namespace containing CLI arguments.
 
@@ -124,7 +121,7 @@ def get_config(args: argparse.Namespace) -> Config:
     fajr_adhan_file = args.fajr_adhan
     log_file = args.log
 
-    address = args.address or prompt_required("Address", HINT_ADDRESS)
+    address = args.address
 
     adhan_config = AdhanConfig(
         device_name=device_name,
