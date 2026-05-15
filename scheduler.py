@@ -8,7 +8,7 @@ import zeroconf
 from prayer import PrayerSchedule, PrayerTime
 from crontab import CronTab, CronItem
 from logger import get_logger
-from config import DEFAULT_PORT, DEFAULT_ADHAN, DEFAULT_FAJR_ADHAN, DEFAULT_LOG
+from config import DEFAULT_PORT, DEFAULT_ADHAN, DEFAULT_FAJR_ADHAN, DEFAULT_LOG, DEFAULT_DEVICE_NAME
 
 logger = get_logger(__name__)
 
@@ -38,14 +38,7 @@ class _DeviceListener:
 
 
 def discover_devices(timeout: int = 10) -> Dict[str, str]:
-    """Discover Chromecast devices on the network.
-
-    Args:
-        timeout: Number of seconds to search for devices.
-
-    Returns:
-        Dictionary mapping UUID to device friendly name.
-    """
+    """Discover Chromecast devices on the network."""
     logger.info(f"Searching for Chromecast devices (timeout: {timeout}s)")
     zconf = zeroconf.Zeroconf()
     browser = pychromecast.CastBrowser(_DeviceListener(), zconf)
@@ -125,7 +118,7 @@ def update_prayer_schedule(
     log: Optional[str] = None
 ) -> None:
     port = port if port is not None else DEFAULT_PORT
-    device_name = device_name if device_name else "Living Room Speaker"
+    device_name = device_name if device_name else DEFAULT_DEVICE_NAME
     adhan = adhan if adhan is not None else DEFAULT_ADHAN
     fajr_adhan = fajr_adhan if fajr_adhan is not None else DEFAULT_FAJR_ADHAN
     log = log if log is not None else DEFAULT_LOG
@@ -160,7 +153,7 @@ def init_cron_job(
     log: Optional[str] = None
 ) -> None:
     port = port if port is not None else DEFAULT_PORT
-    device_name = device_name if device_name else "Living Room Speaker"
+    device_name = device_name if device_name else DEFAULT_DEVICE_NAME
     adhan = adhan if adhan is not None else DEFAULT_ADHAN
     fajr_adhan = fajr_adhan if fajr_adhan is not None else DEFAULT_FAJR_ADHAN
     log = log if log is not None else DEFAULT_LOG

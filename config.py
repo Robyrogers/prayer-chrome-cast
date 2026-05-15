@@ -1,12 +1,11 @@
 import argparse
-import sys
 from dataclasses import dataclass
-from logger import get_logger
 
 DEFAULT_PORT = 8000
 DEFAULT_ADHAN = "assets/azan.mp3"
 DEFAULT_FAJR_ADHAN = "assets/fajr_azan.mp3"
 DEFAULT_LOG = "log/prayer.log"
+DEFAULT_DEVICE_NAME = "Living Room Speaker"
 
 HINT_PORT = str(DEFAULT_PORT)
 HINT_ADHAN = DEFAULT_ADHAN
@@ -14,11 +13,6 @@ HINT_FAJR_ADHAN = DEFAULT_FAJR_ADHAN
 HINT_LOG = DEFAULT_LOG
 HINT_DEVICE_NAME = "e.g., Living Room Speaker"
 HINT_ADDRESS = "e.g., Dortmund, Germany"
-
-
-def get_python_executable() -> str:
-    """Return the path to the current Python interpreter."""
-    return sys.executable
 
 
 @dataclass
@@ -76,7 +70,6 @@ def create_parser() -> argparse.ArgumentParser:
     parser.add_argument('--setup', dest='mode', action='store_const', const='setup')
     parser.add_argument('--cleanup', dest='mode', action='store_const', const='cleanup')
     parser.add_argument('--update', dest='mode', action='store_const', const='update')
-    parser.add_argument('--status', dest='mode', action='store_const', const='status')
     parser.add_argument('--device-name', default=None)
     parser.add_argument('--adhan', default=DEFAULT_ADHAN)
     parser.add_argument('--fajr-adhan', default=DEFAULT_FAJR_ADHAN)

@@ -5,8 +5,6 @@ import requests
 from datetime import date
 from logger import get_logger
 
-PRAYER_NAMES = ('Fajr', 'Dhuhr', 'Asr', 'Maghrib', 'Isha')
-
 logger = get_logger(__name__)
 
 
