@@ -1,4 +1,5 @@
-from os import getcwd
+from os import getcwd, getuid
+import pwd
 from typing import Optional, Dict
 import sys
 import time
@@ -14,6 +15,22 @@ logger = get_logger(__name__)
 PRAYER_ORDER = ['Fajr', 'Dhuhr', 'Asr', 'Maghrib', 'Isha']
 
 
+def get_current_user() -> str:
+    """Get current user for crontab operations with multiple fallback methods."""
+    try:
+        return pwd.getpwuid(getuid()).pw_name
+    except Exception:
+        pass
+
+    import os
+    if user := os.environ.get('USER'):
+        return user
+    if user := os.environ.get('USERNAME'):
+        return user
+
+    raise RuntimeError("Could not detect current user. Please run with sudo or specify user.")
+
+
 class _DeviceListener:
     def add_cast(self, uuid, service): pass
     def remove_cast(self, uuid, service): pass
@@ -27,7 +44,7 @@ def discover_devices(timeout: int = 10) -> Dict[str, str]:
         timeout: Number of seconds to search for devices.
 
     Returns:
-        Dict mapping device UUID to friendly name.
+        Dictionary mapping UUID to device friendly name.
     """
     logger.info(f"Searching for Chromecast devices (timeout: {timeout}s)")
     zconf = zeroconf.Zeroconf()
@@ -98,8 +115,8 @@ def _create_job(
 
 
 def update_prayer_schedule(
-    user: str,
     address: str,
+    user: str,
     cron: Optional[CronTab] = None,
     port: Optional[int] = None,
     device_name: Optional[str] = None,
@@ -134,8 +151,8 @@ def update_prayer_schedule(
 
 
 def init_cron_job(
-    user: str,
     address: str,
+    user: str,
     port: Optional[int] = None,
     device_name: Optional[str] = None,
     adhan: Optional[str] = None,
@@ -162,8 +179,14 @@ def init_cron_job(
         cron.append(job)
 
         update_prayer_schedule(
-            user, address, cron,
-            port, device_name, adhan, fajr_adhan, log
+            address=address,
+            user=user,
+            cron=cron,
+            port=port,
+            device_name=device_name,
+            adhan=adhan,
+            fajr_adhan=fajr_adhan,
+            log=log
         )
 
 
