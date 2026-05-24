@@ -25,7 +25,7 @@ def play_mode(config: Config, user: str) -> None:
             audio_file = config.adhan.fajr_adhan_file if args.fajr else config.adhan.adhan_file
             volume = 0.3 if args.fajr else None
             if args.fajr:
-                logger.info("Playing Fajr adhan at reduced volume (0.7)")
+                logger.info("Playing Fajr adhan at reduced volume (0.3)")
             else:
                 logger.info("Playing regular adhan")
             player.cast_audio(audio_file, volume)

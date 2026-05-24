@@ -66,7 +66,6 @@ def _build_command(
     python_exec = sys.executable
     cmd = (
         f"cd $DIR && {python_exec} . "
-        f"--user {user} "
         f"--address \"{address}\" "
         f"--device-name \"{device_name}\""
     )

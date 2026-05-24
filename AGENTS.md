@@ -1,99 +1,61 @@
-# Chrome-Cast Adhan Project
+# Chrome-Cast Adhan
 
-## Overview
-Python 3.12.x project that casts Islamic prayer call (Adhan) audio to Chromecast devices on a schedule. Uses system cron for scheduling five daily prayers and fetches prayer times from aladhan.com API (timingsByAddress endpoint). Works with any Python package manager (uv, pip).
+Python 3.12.x project that casts adhan audio to Chromecast devices on a cron schedule.
+Fetches prayer times from aladhan.com `/timingsByAddress` (method 3 = Muslim World League).
 
-## Installation
+## Install
 
-```bash
-# uv (recommended)
+```
 uv sync
-
-# pip (fallback)
 pip install -r requirements.txt
 ```
 
 ## Commands
 
-```bash
-# Play adhan to chromecast (prompts for device and address if not provided)
-python . --device-name "Living Room Speaker" --address "Dortmund, Germany"
+| Command | What it does |
+|---------|-------------|
+| `python .` | Play adhan (prompts for device, then address if missing) |
+| `python . --fajr` | Play Fajr adhan at volume 0.3 |
+| `python . --setup` | Init cron: 5 daily prayers + daily update at 01:00 |
+| `python . --cleanup` | Remove all cron jobs (no prompts) |
+| `python . --update` | Refresh prayer times from API and rewrite cron |
 
-# Play fajr adhan (lower volume: 0.3)
-python . --fajr
+All modes accept `--device-name`, `--address`, `--port`, `--adhan`, `--fajr-adhan`, `--log`.
 
-# Custom port for local server
-python . --port 9000 --fajr
+| Flag | Default |
+|------|---------|
+| `--device-name` | None (prompted) |
+| `--adhan` | `assets/azan.mp3` |
+| `--fajr-adhan` | `assets/fajr_azan.mp3` |
+| `--port` | 8000 |
+| `--address` | None (prompted) |
+| `--log` | `log/prayer.log` |
 
-# Use remote URL instead of local file
-python . --adhan "https://example.com/audio.mp3"
+## Gotchas
 
-# Initialize cron jobs for prayer schedule (prompts for address and device if not provided)
-python . --setup --address "Dortmund, Germany"
+- **`DISCOVER_TIMEOUT = 5`** in `media.py` — may need bumping on slow networks
+- **Port conflict crashes** — `AudioServer` has no retry/fallback if port is in use
+- **Log rotation is every 7 days** (not daily). `TimedRotatingFileHandler(when="midnight", interval=7, backupCount=7)`
+- **Cron commands always include `--address` and `--device-name`** — only `--port`, `--adhan`, `--fajr-adhan`, `--log` are omitted when at defaults
+- **Prompt order differs by mode**: play → device then address; setup → address then device
 
-# Remove all cron jobs (no prompts needed)
-python . --cleanup
+## Architecture
 
-# Refresh prayer times from API and update cron (prompts for address if not provided)
-python . --update --address "Dortmund, Germany"
-```
+- `__main__.py` — CLI entrypoint; dispatches to play/setup/cleanup/update modes
+- `config.py` — argparse + dataclass config (no prompting; modes handle prompts)
+- `media.py` — `MediaCaster` context manager (discovers device, starts local HTTP server, casts audio)
+- `server.py` — ephemeral `AudioServer` (threaded HTTP server for local files during playback)
+- `prayer.py` — `PrayerSchedule` fetches timings from aladhan.com API
+- `scheduler.py` — cron management via `python-crontab`
+- `search.py` — standalone device discovery utility (not imported by the app)
+- `logger.py` — dual file+console logger with `TimedRotatingFileHandler`
 
-## CLI Flags
+## Cron behavior
 
-| Flag | Purpose | Default |
-|------|---------|---------|
-| `--device-name` | Chromecast friendly name | None (prompted in play/setup modes) |
-| `--adhan` | Audio file path or URL | "assets/azan.mp3" |
-| `--fajr-adhan` | Fajr audio file path or URL | "assets/fajr_azan.mp3" |
-| `--port` | Local HTTP server port | 8000 |
-| `--address` | Location address (city, country) | None (prompted in play/setup/update modes) |
-| `--log` | Log file path | "log/prayer.log" |
-| `--fajr` | Play Fajr adhan (lower volume) | False |
-| `--setup` | Initialize cron jobs | - |
-| `--cleanup` | Remove all cron jobs | - |
-| `--update` | Refresh prayer times from API | - |
+- **Daily at 01:00**: runs `--update` to refresh prayer times from API
+- **5 prayers**: Fajr (volume 0.3), Dhuhr, Asr, Maghrib, Isha
+- User auto-detected via `pwd.getpwuid(getuid())` → `$USER` → `$USERNAME`
 
-## File Descriptions
+## Code quality
 
-| File | Description |
-|------|-------------|
-| `__main__.py` | CLI entry point with mode routing (play_mode, setup_mode, cleanup_mode, update_mode) |
-| `config.py` | Dataclass-based configuration, CLI argument parsing (no prompts - handled by modes) |
-| `media.py` | `MediaCaster` class (context manager) - discovers and casts audio to Chromecast, includes device discovery |
-| `server.py` | HTTP server for serving local audio files during playback |
-| `prayer.py` | `PrayerSchedule` class - fetches prayer times from aladhan.com API (timingsByAddress endpoint, method 3) |
-| `scheduler.py` | Cron job management: `init_cron_job()`, `update_prayer_schedule()`, `clean_up_cron_jobs()`, `get_current_user()` |
-| `logger.py` | Logging utility with daily rotating file handler |
-| `search.py` | Standalone utility to discover Chromecast devices on network |
-| `assets/` | Audio files directory (azan.mp3, fajr_azan.mp3) |
-
-## Dependencies
-
-- `pychromecast` - Chromecast device discovery/control
-- `python-crontab` - Cron job management
-- `requests` - HTTP calls to aladhan.com API
-
-## Testing & Code Quality
-
-- No tests exist in this repo
-- No lint/format/typecheck configuration
-
-## Cron Behavior
-
-- **Daily at 01:00** - Update prayer times from API
-- **Five scheduled times** - Fajr, Dhuhr, Asr, Maghrib, Isha (pulled from API)
-- User is auto-detected via `get_current_user()` (pwd module, falls back to USER env var)
-- Cron commands include `--address` and `--device-name` flags only if explicitly provided (not defaults)
-
-## Important Gotchas
-
-- `DISCOVER_TIMEOUT = 5` seconds in media.py - may need adjustment for slow networks
-- Audio files can be local paths (served via local HTTP server) or remote URLs
-- Log file is auto-rotated daily, keeping last 7 days
-- No global prompts in config.py - each mode handles its own prompts:
-  - **play mode**: Prompts for device (if needed), then address (if needed)
-  - **setup mode**: Prompts for address (if needed), then device (if needed)
-  - **update mode**: Prompts for address (if needed)
-  - **cleanup mode**: No prompts needed
-- User is auto-detected for cron operations - no --user flag needed
-- API endpoint changed from `/timingsByCity` to `/timingsByAddress` using combined address string (e.g., "Dortmund, Germany")
+- No tests, no lint/format/typecheck config
