@@ -36,7 +36,11 @@ All modes accept `--device-name`, `--address`, `--port`, `--adhan`, `--fajr-adha
 - **`DISCOVER_TIMEOUT = 5`** in `media.py` — may need bumping on slow networks
 - **Port conflict crashes** — `AudioServer` has no retry/fallback if port is in use
 - **Log rotation is every 7 days** (not daily). `TimedRotatingFileHandler(when="midnight", interval=7, backupCount=7)`
+- **Two different log defaults**: CLI default is `log/prayer.log` (`config.py`), but `get_logger(log_file=None)` writes to `~/logs/prayer.log` (`logger.py`)
+- **Hidden device fallback**: `--update` silently uses `"Living Room Speaker"` when `--device-name` omitted (`scheduler.py:120,155`)
 - **Cron commands always include `--address` and `--device-name`** — only `--port`, `--adhan`, `--fajr-adhan`, `--log` are omitted when at defaults
+- **Cron uses `sys.executable`** at setup time, not a bare `python3` (`scheduler.py:66`)
+- **Cron jobs set `DIR` env var** to project root so `cd $DIR` works (`scheduler.py:105,170`)
 - **Prompt order differs by mode**: play → device then address; setup → address then device
 
 ## Architecture
@@ -53,8 +57,8 @@ All modes accept `--device-name`, `--address`, `--port`, `--adhan`, `--fajr-adha
 ## Cron behavior
 
 - **Daily at 01:00**: runs `--update` to refresh prayer times from API
-- **5 prayers**: Fajr (volume 0.3), Dhuhr, Asr, Maghrib, Isha
-- User auto-detected via `pwd.getpwuid(getuid())` → `$USER` → `$USERNAME`
+- **5 prayers**: Fajr (volume 0.3), Dhuhr, Asr, Maghrib, Isha — tagged as `{Prayer} Prayer` comment for cleanup/update lookup
+- **User auto-detected** via `pwd.getpwuid(getuid())` → `$USER` → `$USERNAME`
 
 ## Code quality
 
